@@ -1237,18 +1237,14 @@ function validateRequiredFields() {
             okCheckbox.parentElement.style.border = '1px solid red';
             isValid = false;
         } else {
-            // If checkbox is checked, also validate the revision and date fields
+            // If checkbox is checked, ONLY validate revision field (date is optional now)
             const revision = document.querySelector(`input[name="approvedDrawing_revision_${i}"]`);
-            const date = document.querySelector(`input[name="approvedDrawing_date_${i}"]`);
             
             if (revision && !revision.value) {
                 revision.style.borderColor = 'red';
                 isValid = false;
             }
-            if (date && !date.value) {
-                date.style.borderColor = 'red';
-                isValid = false;
-            }
+            // Date validation removed - date field is now optional
         }
     }
 
