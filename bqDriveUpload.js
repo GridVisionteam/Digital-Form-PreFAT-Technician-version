@@ -248,17 +248,16 @@ async function generateQRCodeDataURL(txtContent) {
             qr.addData(txtContent);
             qr.make();
             
-            // Match the exact dimensions from BQ.js
-            const qrSize = 400; // QR code size
+            // Match EXACT dimensions from BQ.js
+            const qrSize = 400;
             const cellSize = qrSize / qr.getModuleCount();
             const margin = 2;
             const qrTotalSize = qrSize + margin * 2 * cellSize;
             
-            // Add space for label (40px for text) - same as BQ.js
-            const labelHeight = 40;
+            // Add space for label - matching BQ.js (60px for two lines)
+            const labelHeight = 60;
             const totalHeight = qrTotalSize + labelHeight;
             
-            // Create canvas with extra height for label
             const canvas = document.createElement('canvas');
             canvas.width = qrTotalSize;
             canvas.height = totalHeight;
@@ -283,29 +282,25 @@ async function generateQRCodeDataURL(txtContent) {
                 }
             }
             
-            // Add label below QR code - MATCHING BQ.js STYLE
+            // Get supplier name and contract info - matching BQ.js
+            const contractNo = localStorage.getItem('session_contractNo') || 'ContractNo';
+            const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
+            const supplierName = document.getElementById('supplierName')?.value || localStorage.getItem('session_supplierName') || 'Unknown Supplier';
+            
+            // Add label below QR code - EXACT match with BQ.js
             ctx.fillStyle = '#000000';
-            ctx.font = 'bold 14px Arial';
+            ctx.font = 'bold 12px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
             
-            // Create a filename for the label (similar to BQ.js)
-            const contractNo = localStorage.getItem('session_contractNo') || 'ContractNo';
-            const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
-            const now = new Date();
-            const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-            const filename = `${dateformat}_QR_CODE_${contractNo}_${rtuSerial}.png`;
+            // First line: RTU Serial No
+            ctx.fillText(rtuSerial, canvas.width / 2, qrTotalSize + 10);
             
-            // Draw the label text (filename without .png extension)
-            const labelText = filename.replace('.png', '');
-            ctx.fillText(labelText, canvas.width / 2, qrTotalSize + 10);
+            // Second line: contract no. - supplier name
+            ctx.fillText(`${contractNo} - ${supplierName}`, canvas.width / 2, qrTotalSize + 30);
             
-            // Optional: Add a light gray border around the QR code section
-            ctx.strokeStyle = '#CCCCCC';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(0, 0, qrTotalSize, qrTotalSize);
+            // NO grey border - removed the strokeRect that was adding the border
             
-            // Convert to data URL
             const dataUrl = canvas.toDataURL('image/png');
             resolve(dataUrl);
             
