@@ -385,7 +385,7 @@ function SelectAll() {
     updateSubmitButtonState();
 }
 
-// Update clearAll function
+// Update clearAll function with confirmation
 function clearAll() {
     // Clear all checkboxes
     const checkboxes = document.querySelectorAll('.di-test-checkbox');
@@ -1163,4 +1163,20 @@ function isValidIOAValue(value) {
     // Check if the value contains only numbers (no letters or special characters)
     // This regex matches only digits (0-9)
     return /^\d+$/.test(value);
+}
+
+// Confirmation wrapper for DI-32 Clear All (called from HTML)
+function clearAllWithConfirm() {
+    if (confirm("⚠️ WARNING: This will clear ALL test data for the current DI module.\n\nThis includes:\n- All checkbox selections\n- All IOA/Index field entries (IEC101, IEC104, DNP3)\n\nThis action CANNOT be undone.\n\nAre you sure you want to continue?")) {
+        clearAll();
+        alert("All data has been cleared for this module.");
+    }
+}
+
+// Confirmation wrapper for DI-16 Clear All (called from HTML)
+function clearAllDI16WithConfirm() {
+    if (confirm("⚠️ WARNING: This will clear ALL test data for the current DI-16 module.\n\nThis includes:\n- All checkbox selections\n- All IOA/Index field entries (IEC101, IEC104, DNP3)\n\nThis action CANNOT be undone.\n\nAre you sure you want to continue?")) {
+        clearAllDI16();
+        alert("All data has been cleared for this module.");
+    }
 }

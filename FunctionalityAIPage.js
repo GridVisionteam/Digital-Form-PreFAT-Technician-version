@@ -46,11 +46,11 @@ function generateAIRows() {
         const row = document.createElement("tr");
 
         // Point number
-        row.innerHTML += `<td>${i + 1}</td>`;
+        row.innerHTML += `<td style="text-align: center;">${i + 1}</td>`;
 
-        // Add rowspan cell only for first row (will span 9 rows)
+        // Add rowspan cell only for first row (will span 8 rows)
         if (i === 0) {
-            row.innerHTML += `<td rowspan="9" style="text-align: center; vertical-align: middle;">Result</td>`;
+            row.innerHTML += `<td rowspan="8" style="text-align: center; vertical-align: middle;">Result</td>`;
         }
 
         // Current test inputs - CHECKBOX
@@ -65,9 +65,9 @@ function generateAIRows() {
 
         // Protocol inputs (change to text type to allow dash, with input restrictions)
         row.innerHTML += `
-            <td><input type="text" class="ai-test-input ai-ioa-input" name="AI_${window.currentAIModule}_IEC101_${i + 1}" placeholder="Enter IOA or -"></td>
-            <td><input type="text" class="ai-test-input ai-ioa-input" name="AI_${window.currentAIModule}_IEC104_${i + 1}" placeholder="Enter IOA or -"></td>
-            <td><input type="text" class="ai-test-input ai-ioa-input" name="AI_${window.currentAIModule}_DNP3_${i + 1}" placeholder="Enter IOA or -"></td>
+            <td style="text-align: center;"><input type="text" class="ai-test-input ai-ioa-input" name="AI_${window.currentAIModule}_IEC101_${i + 1}" placeholder="Enter IOA or -"></td>
+            <td style="text-align: center;"><input type="text" class="ai-test-input ai-ioa-input" name="AI_${window.currentAIModule}_IEC104_${i + 1}" placeholder="Enter IOA or -"></td>
+            <td style="text-align: center;"><input type="text" class="ai-test-input ai-ioa-input" name="AI_${window.currentAIModule}_DNP3_${i + 1}" placeholder="Enter IOA or -"></td>
         `;
 
         tableBody.appendChild(row);
@@ -574,7 +574,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load saved test results if available
     const savedResults = localStorage.getItem('aiTestResults');
     if (savedResults) {
-        window.aiTestResults = JSON.parse(savedResults);
+        try {
+            window.aiTestResults = JSON.parse(savedResults);
+        } catch (e) {
+            console.error('Error parsing saved results:', e);
+            window.aiTestResults = {};
+        }
     }
 
     // Initialize module tracking
@@ -615,6 +620,7 @@ function validateAICheckboxes() {
     
     return allChecked;
 }
+
 function isValidAIIOAValue(value) {
     // Allow empty values (these will be caught by empty field validation)
     if (value === "") return false;
@@ -682,4 +688,12 @@ function addAIIOAInputRestrictions() {
             }
         });
     });
+}
+
+// Confirmation wrapper for Clear All button
+function clearAllFunctionalityWithConfirm() {
+    if (confirm("⚠️ WARNING: This will clear ALL test data for the current AI module.\n\nThis includes:\n- All checkbox selections\n- All IOA/Index field entries (IEC101, IEC104, DNP3)\n\nThis action CANNOT be undone.\n\nAre you sure you want to continue?")) {
+        clearAllFunctionality();
+        alert("All data has been cleared for this module.");
+    }
 }
