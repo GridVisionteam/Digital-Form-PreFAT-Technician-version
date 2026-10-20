@@ -6,6 +6,16 @@ if (typeof PDFLib === 'undefined') {
 console.log("PDFLib available:", typeof PDFLib !== 'undefined');
 console.log("Download function available:", typeof download !== 'undefined');
 
+// ---------- filename helper (NO space before "(") ----------
+function buildContractWithBatch() {
+    const rawContract = localStorage.getItem('session_contractNo') || 'ContractNo';
+    const rawBatch = localStorage.getItem('session_Batch_No') || 'BatchNo';
+    const cleanContract = String(rawContract).replace(/"/g, '').replace(/[\s\u00A0]+$/g, '').trim() || 'ContractNo';
+    const cleanBatch = String(rawBatch).replace(/"/g, '').trim() || 'BatchNo';
+    return `${cleanContract}(B${cleanBatch})`;
+}
+window.buildContractWithBatch = buildContractWithBatch;
+
 // 1. NEW HELPER: Fetch time ONCE
 async function fetchGlobalTime() {
     try {
@@ -306,10 +316,13 @@ async function generateFinalPDF(currentUserData) {
         console.log("Finalizing PDF...");
         const modifiedPdfBytes = await pdfDoc.save();
         
-        // Download logic
+        // Download logic (filename includes Contract(Bbatch))
         const now = new Date();
         const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-        const fileName = `RTU_Report_${localStorage.getItem('session_contractNo') || 'ContractNo'}_${localStorage.getItem('session_rtuSerial') || 'SerialNo'}.pdf`;
+        const contractWithBatch = buildContractWithBatch();
+        // NOTE: rtuSerial is already declared near the top of this function
+        const cleanRtuSerialForFile = (rtuSerial || 'SerialNo').replace(/"/g, '').trim() || 'SerialNo';
+        const fileName = `RTU_Report_${contractWithBatch}_${cleanRtuSerialForFile}.pdf`;
 
         if (typeof download === 'function') {
             download(modifiedPdfBytes, fileName, 'application/pdf');
@@ -399,8 +412,6 @@ async function processPreRequisiteSection(pdfDoc, currentUserData, globalTime) {
             // Set checkbox
             safeSetCheckBox(`Check_Box_AD_${i}_1`, item.ok);
         }
-
-        // [Other sections commented out remain the same...]
 
         // Bill of Quantities logic
         const moduleQuantities = {
@@ -560,11 +571,6 @@ async function processPowerSupplyModules(pdfDoc, currentUserData, powerModulesDe
 // --- STANDARD SECTIONS (Time passed in) ---
 
 async function processProductDeclarationSection(pdfDoc, currentUserData, globalTime) {
-    // ... (Code logic same as provided in previous messages, omitted for extreme length, but follows same pattern:
-    // Load Template -> Fill Data -> addSignature -> setGenerationTime(form, globalTime) -> Flatten -> Copy)
-    // Placeholder for copy-paste - Ensure you use the version I provided earlier for this function but add globalTime
-    // For brevity of this response, I will implement the standard structure.
-    
     console.log("Processing Product Declaration");
     const templateUrl = `./PDF/DF1725IED FAT Test Record-Product Declaration.pdf`;
     const templateBytes = await fetch(templateUrl).then(res => res.arrayBuffer());

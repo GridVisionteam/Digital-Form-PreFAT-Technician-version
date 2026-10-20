@@ -53,37 +53,15 @@
         </div>
     </div>
 
-    <script src="commonFunctions.js"></script>
-    <script src="generateJSON.js"></script>
-    <script src="googleDrive.js"></script>
-    <script src="generatePDF.js"></script>
+    <!-- =========================================================
+         DEFINE updateDriveStatus FIRST, before any script that
+         might call it (googleDrive.js calls updateDriveStatusIfAvailable,
+         and generatePDF.js / googleDrive.js can fire before the inline
+         script below runs).
+         ========================================================= -->
     <script>
-        // Function to handle back navigation
-        function goToBack() {
-            const backBtn = document.getElementById('backBtn');
-            if (backBtn) {
-                backBtn.click();
-            }
-        }
-
-        document.addEventListener('keydown', function(event) {
-            // Check if we're in an input field
-            const isInputField = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
-            
-            // Only trigger shortcuts if not typing in an input field
-            if (!isInputField) {
-                if (event.key === 'a' || event.key === 'A' || event.keyCode === 65 || event.keyCode === 97) {
-                    event.preventDefault();
-                    goToBack();
-                }
-            }
-        });
-    </script>
-    <script>
-        // Expose the function to the global scope
-        window.startNewSession = startNewSession;
-        
-        // Function to update drive status
+        // Function to update drive status — MUST be defined before
+        // googleDrive.js and generatePDF.js are loaded
         window.updateDriveStatus = function(message, isError = false, isSuccess = false, link = null) {
             const driveStatusContainer = document.getElementById('driveStatusContainer');
             const driveStatusElement = document.getElementById('driveStatus');
@@ -91,6 +69,7 @@
             const driveLinkAnchor = document.getElementById('driveLinkAnchor');
             
             if (!driveStatusElement) return;
+            if (!driveStatusContainer) return;
             
             // Show container
             driveStatusContainer.style.display = 'block';
@@ -119,13 +98,48 @@
                 driveLink.style.display = 'block';
                 driveLinkAnchor.href = link;
                 driveLinkAnchor.textContent = '📎 ' + link;
-                
-                // Also log to console for debugging
                 console.log('Google Drive Link:', link);
             } else {
                 driveLink.style.display = 'none';
             }
         };
+
+        // ---------- filename helper (NO space before "(") ----------
+        window.buildContractWithBatch = function() {
+            const rawContract = localStorage.getItem('session_contractNo') || 'ContractNo';
+            const rawBatch = localStorage.getItem('session_Batch_No') || 'BatchNo';
+            const cleanContract = String(rawContract).replace(/"/g, '').replace(/[\s\u00A0]+$/g, '').trim() || 'ContractNo';
+            const cleanBatch = String(rawBatch).replace(/"/g, '').trim() || 'BatchNo';
+            return `${cleanContract}(B${cleanBatch})`;
+        };
+    </script>
+
+    <script src="commonFunctions.js"></script>
+    <script src="generateJSON.js"></script>
+    <script src="googleDrive.js"></script>
+    <script src="generatePDF.js"></script>
+    <script>
+        // Function to handle back navigation
+        function goToBack() {
+            const backBtn = document.getElementById('backBtn');
+            if (backBtn) {
+                backBtn.click();
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            const isInputField = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
+            if (!isInputField) {
+                if (event.key === 'a' || event.key === 'A' || event.keyCode === 65 || event.keyCode === 97) {
+                    event.preventDefault();
+                    goToBack();
+                }
+            }
+        });
+    </script>
+    <script>
+        // Expose the function to the global scope
+        window.startNewSession = startNewSession;
         
         // Modified function to generate and upload to Google Drive ONLY (no local downloads)
         async function generateAndUploadToDrive() {
@@ -148,7 +162,8 @@
                 // Load user data
                 const userData = loadUserData();
                 const contractNo = localStorage.getItem('session_contractNo') || 'UnknownContract';
-                const cleanContractNo = contractNo.replace(/"/g, '').trim();
+                const cleanContractNo = contractNo.replace(/"/g, '').replace(/[\s\u00A0]+$/g, '').trim() || 'UnknownContract';
+                const contractWithBatch = buildContractWithBatch();
                 
                 statusElement.textContent = "Generating PDF...";
                 progressBar.style.width = '20%';
@@ -169,23 +184,21 @@
                 const jsonBlob = new Blob([jsonContent], { type: 'application/json' });
                 const jsonBytes = await new Uint8Array(await new Response(jsonBlob).arrayBuffer());
                 
-                // Create filenames
+                // Create filenames with batch: Contract(Bbatch)_Serial
                 const now = new Date();
                 const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
                 const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
-                const cleanRtuSerial = rtuSerial.replace(/"/g, '').trim();
-                const pdfFileName = `RTU_Report_${cleanContractNo}_${cleanRtuSerial}.pdf`;
-                const jsonFileName = `${dateformat}_RTU_Backup_${cleanContractNo}_${cleanRtuSerial}.json`;
+                const cleanRtuSerial = rtuSerial.replace(/"/g, '').trim() || 'SerialNo';
+                const pdfFileName = `RTU_Report_${contractWithBatch}_${cleanRtuSerial}.pdf`;
+                const jsonFileName = `${dateformat}_RTU_Backup_${contractWithBatch}_${cleanRtuSerial}.json`;
                 
-                // Step 3: Get or create contract folder for JSON
+                // Step 3: Get or create contract folder for JSON (folder = original contract only, no batch)
                 progressBar.style.width = '40%';
                 updateDriveStatus(`Checking/Creating JSON folder for contract ${cleanContractNo}...`, false, false);
 
-                // Define folder IDs
                 const JSON_FOLDER_ID = '1c2tPDiI2gX29Uh40n_vRDeqe7A_AChUA';
                 const GENERATED_PDF_FOLDER_ID = '1Wnl9fF4V7ZKDiAjDDkNwI3ILdP7i3TjX';
 
-                // PDF goes to GENERATED_PDF_FOLDER_ID -> contract folder
                 let pdfContractFolderId = null;
                 if (typeof window.getContractFolderInParent === 'function') {
                     pdfContractFolderId = await window.getContractFolderInParent(cleanContractNo, GENERATED_PDF_FOLDER_ID);
@@ -195,7 +208,6 @@
                     console.log(`Using generated PDF folder ID directly: ${pdfContractFolderId}`);
                 }
 
-                // JSON goes to contract folder INSIDE JSON_FOLDER_ID
                 let jsonContractFolderId = null;
                 if (typeof window.getContractFolderInParent === 'function') {
                     jsonContractFolderId = await window.getContractFolderInParent(cleanContractNo, JSON_FOLDER_ID);
@@ -214,13 +226,13 @@
                         data: pdfBytes,
                         name: pdfFileName,
                         mimeType: 'application/pdf',
-                        folderId: pdfContractFolderId  // PDF goes to contract folder
+                        folderId: pdfContractFolderId
                     },
                     {
                         data: jsonBytes,
                         name: jsonFileName,
                         mimeType: 'application/json',
-                        folderId: jsonContractFolderId  // JSON goes to contract folder inside JSON_FOLDER_ID
+                        folderId: jsonContractFolderId
                     }
                 ];
                 
@@ -228,10 +240,8 @@
                 progressBar.style.width = '60%';
                 updateDriveStatus("Authenticating with Google Drive...", false, false);
 
-                // Get access token
                 const accessToken = await window.getAccessToken();
 
-                // Upload files sequentially with replace logic
                 const uploadResults = [];
 
                 for (let i = 0; i < filesToUpload.length; i++) {
@@ -239,10 +249,8 @@
                     progressBar.style.width = 60 + (i * 15) + '%';
                     updateDriveStatus(`Uploading ${file.name}...`, false, false);
                     
-                    // Use uploadOrReplaceFile which checks and replaces existing files
                     if (typeof window.uploadOrReplaceFile === 'function') {
                         try {
-                            // Pass folderId to upload to contract folder
                             const result = await window.uploadOrReplaceFile(
                                 file.data, 
                                 file.name, 
@@ -259,13 +267,11 @@
                                 error: uploadError.message 
                             });
                             
-                            // If PDF fails, we should stop
                             if (file.mimeType === 'application/pdf') {
                                 throw new Error(`Failed to upload PDF: ${uploadError.message}`);
                             }
                         }
                     } else {
-                        // Fallback to regular upload
                         try {
                             const result = await window.uploadToDriveFolder(
                                 file.data, 
@@ -289,35 +295,28 @@
                 updateDriveStatus("Creating shareable link...", false, false);
                 
                 let shareableLink = null;
-                const pdfUploadResult = uploadResults[0]; // First result should be PDF
+                const pdfUploadResult = uploadResults[0];
                 
                 if (pdfUploadResult && pdfUploadResult.id && typeof window.createShareableLink === 'function') {
                     shareableLink = await window.createShareableLink(pdfUploadResult.id);
                 }
                 
-                // Complete - NO LOCAL DOWNLOADS
                 statusElement.textContent = "Files uploaded to Google Drive!";
                 progressBar.style.width = '100%';
                 progressBar.style.backgroundColor = '#4CAF50';
 
-                // Show results
                 const successfulUploads = uploadResults.filter(r => r && !r.error).length;
                 if (successfulUploads === filesToUpload.length) {
                     if (shareableLink) {
                         updateDriveStatus(`✅ Both files uploaded to contract folder "${cleanContractNo}"!`, false, true, shareableLink);
-                        
-                        // Auto-open in new tab after 2 seconds
                         setTimeout(() => {
                             if (confirm(`Files uploaded to contract folder "${cleanContractNo}"!\n\nClick OK to open PDF in new tab, or Cancel to stay here.`)) {
                                 window.open(shareableLink, '_blank');
                             }
                         }, 2000);
                     } else if (pdfUploadResult && pdfUploadResult.id) {
-                        // Provide link to the PDF file itself (not the folder)
                         const fileLink = `https://drive.google.com/file/d/${pdfUploadResult.id}/view`;
                         updateDriveStatus(`✅ Both files uploaded to contract folder "${cleanContractNo}"!`, false, true, fileLink);
-                        
-                        // Auto-open in new tab after 2 seconds
                         setTimeout(() => {
                             if (confirm(`Files uploaded to contract folder "${cleanContractNo}"!\n\nClick OK to open PDF in new tab, or Cancel to stay here.`)) {
                                 window.open(fileLink, '_blank');
@@ -331,34 +330,18 @@
                     updateDriveStatus(`⚠️ Some files failed to upload: ${failedFiles}`, true, false);
                 }
                 
-                // NO LOCAL DOWNLOADS - The following lines are removed:
-                // try {
-                //     await generateFinalPDF(userData);
-                //     generateJsonFile();
-                // } catch (localError) {
-                //     console.log("Local download also attempted");
-                // }
-                
             } catch (error) {
                 console.error("Generation/upload failed:", error);
                 statusElement.textContent = "Process failed: " + error.message;
                 progressBar.style.width = '100%';
                 progressBar.style.backgroundColor = '#f44336';
                 
-                updateDriveStatus(`❌ Upload failed: ${error.message}`, true, false);
-                
-                // NO LOCAL FALLBACK - The following lines are removed:
-                // try {
-                //     const userData = loadUserData();
-                //     await generateFinalPDF(userData);
-                //     generateJsonFile();
-                //     updateDriveStatus("❌ Upload failed, but local files were generated.", true, false);
-                // } catch (localError) {
-                //     console.error("Local generation also failed:", localError);
-                // }
+                // Safe call — updateDriveStatus is guaranteed to exist now
+                if (typeof updateDriveStatus === 'function') {
+                    updateDriveStatus(`❌ Upload failed: ${error.message}`, true, false);
+                }
                 
             } finally {
-                // Re-enable button
                 if (uploadBtn) {
                     uploadBtn.disabled = false;
                     uploadBtn.textContent = 'Generate & Upload to Drive';
@@ -451,29 +434,6 @@
             background-color: #d1ecf1;
             color: #0c5460;
             border: 1px solid #bee5eb;
-        }
-        
-        .drive-config-info {
-            margin-top: 30px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            font-size: 14px;
-            text-align: left;
-        }
-        
-        .drive-config-info h3 {
-            margin-top: 0;
-            color: #666;
-        }
-        
-        .drive-config-info a {
-            color: #2196F3;
-            text-decoration: none;
-        }
-        
-        .drive-config-info a:hover {
-            text-decoration: underline;
         }
     </style>
 </body>
