@@ -9,10 +9,12 @@ function saveCurrentRTUDetails() {
     const rtuSerialInput = document.getElementById('rtuSerial');
     const contractNoInput = document.getElementById('contractNo');
     const projectNameInput = document.getElementById('projectName');
+    const batchNoInput = document.getElementById('batchNo');
 
     if (rtuSerialInput) localStorage.setItem('session_rtuSerial', rtuSerialInput.value.trim());
     if (contractNoInput) localStorage.setItem('session_contractNo', contractNoInput.value.trim());
     if (projectNameInput) localStorage.setItem('session_projectName', projectNameInput.value.trim());
+    if (batchNoInput) localStorage.setItem('session_Batch_No', batchNoInput.value.trim());
 }
 
 // --- Utility Functions ---
@@ -41,10 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const rtuSerialInput = document.getElementById('rtuSerial');
     const contractNoInput = document.getElementById('contractNo');
     const projectNameInput = document.getElementById('projectName');
+    const batchNoInput = document.getElementById('batchNo');
 
     if (rtuSerialInput) rtuSerialInput.value = getStoredValue('session_rtuSerial');
     if (contractNoInput) contractNoInput.value = getStoredValue('session_contractNo');
     if (projectNameInput) projectNameInput.value = getStoredValue('session_projectName');
+    if (batchNoInput) batchNoInput.value = getStoredValue('session_Batch_No');
 });
 
 function goToBack() {
@@ -56,13 +60,15 @@ function goToBQPage() {
     const rtuSerialInput = document.getElementById("rtuSerial");
     const contractNoInput = document.getElementById("contractNo");
     const projectNameInput = document.getElementById("projectName");
+    const batchNoInput = document.getElementById("batchNo");
 
     const rtuSerial = rtuSerialInput ? rtuSerialInput.value.trim() : "";
     const contractNo = contractNoInput ? contractNoInput.value.trim() : "";
     const projectName = projectNameInput ? projectNameInput.value.trim() : "";
+    const batchNo = batchNoInput ? batchNoInput.value.trim() : "";
 
-    if (!rtuSerial || !contractNo || !projectName) {
-        showCustomAlert("Please fill in all fields (RTU Serial No., Contract No., and Project Name)");
+    if (!rtuSerial || !contractNo || !projectName || !batchNo) {
+        showCustomAlert("Please fill in all fields (RTU Serial No., Contract No., Batch No., and Project Name)");
         return;
     }
     saveCurrentRTUDetails();
