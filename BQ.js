@@ -1703,7 +1703,8 @@ function generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial
         
         ctx.font = 'bold 35px Arial';
         const line2Y = textStartY + line1Height + spacingBetweenLines;
-        ctx.fillText(`${contractNo} - ${supplierName}`, canvas.width / 2, line2Y);
+        const cleanContractNo = String(contractNo).replace(/\(B[^)]*\)/g, '').trim() || contractNo;
+        ctx.fillText(`${cleanContractNo} - ${supplierName}`, canvas.width / 2, line2Y);
         
         const qrDataUrl = canvas.toDataURL('image/png', 1.0);
         const qrLink = document.createElement('a');

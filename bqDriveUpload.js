@@ -296,7 +296,10 @@ async function generateQRCodeDataURL(txtContent) {
             
             ctx.font = 'bold 35px Arial';
             const line2Y = textStartY + line1Height + spacingBetweenLines;
-            ctx.fillText(`${contractWithBatch} - ${supplierName}`, canvas.width / 2, line2Y);
+
+            // Label under QR: strip batch number -> show contract only
+            const cleanContractNo = String(contractWithBatch).replace(/\(B[^)]*\)/g, '').trim() || contractWithBatch;
+            ctx.fillText(`${cleanContractNo} - ${supplierName}`, canvas.width / 2, line2Y);
             
             const dataUrl = canvas.toDataURL('image/png', 1.0);
             resolve(dataUrl);
